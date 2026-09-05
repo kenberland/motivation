@@ -79,6 +79,7 @@ final class MotivationGeofenceManager: NSObject {
             return
         }
         
+        locationManager.startMonitoringSignificantLocationChanges()
         fetchLocations()
     }
     
@@ -194,7 +195,7 @@ final class MotivationGeofenceManager: NSObject {
             )
             
             region.notifyOnEntry = true
-            region.notifyOnExit = false
+            region.notifyOnExit = true
             
             if currentlyMonitored.contains(location.name) {
                 NSLog(
@@ -233,7 +234,7 @@ final class MotivationGeofenceManager: NSObject {
     
     // MARK: - Event Handling
     
-    private func handleEvent(for region: CLRegion) {
+    private func handleEvent(for region: CLRegion, activity: String) {
         guard let location = monitoredLocations.first(
             where: { $0.name == region.identifier }
         ) else {
@@ -243,15 +244,22 @@ final class MotivationGeofenceManager: NSObject {
             )
             return
         }
-        
+
         NSLog(
-            "🚨 Handling geofence event: %@",
-            location.name
+            "🚨 Handling geofence event: %@ (%@)",
+            location.name,
+            activity
         )
-        
+
+        // The backend validates against a strict JSON schema: it requires
+        // exactly these keys and rejects any that are missing or extra.
+        // created_at is Unix epoch seconds (UTC) sent as a string,
+        // movement_type must be "enter" or "exit".
         let event: [String: Any] = [
+            "event_id": UUID().uuidString,
+            "created_at": String(Int(Date().timeIntervalSince1970)),
             "name": location.name,
-            "time": ISO8601DateFormatter().string(from: Date())
+            "movement_type": activity
         ]
         
         guard
@@ -357,9 +365,21 @@ extension MotivationGeofenceManager: CLLocationManagerDelegate {
             region.identifier
         )
         
-        handleEvent(for: region)
+        handleEvent(for: region, activity: "enter")
     }
-    
+
+    func locationManager(
+        _ manager: CLLocationManager,
+        didExitRegion region: CLRegion
+    ) {
+        NSLog(
+            "🚨🚨🚨 EXITED REGION: %@",
+            region.identifier
+        )
+
+        handleEvent(for: region, activity: "exit")
+    }
+
     func locationManager(
         _ manager: CLLocationManager,
         monitoringDidFailFor region: CLRegion?,
