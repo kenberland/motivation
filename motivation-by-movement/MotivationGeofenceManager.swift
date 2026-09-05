@@ -38,9 +38,9 @@ final class MotivationGeofenceManager: NSObject, ObservableObject {
 
     private var monitoredLocations: [MotivationLocation] = []
     
-    // Use a larger radius while testing.
-    // Once everything works, you can reduce this to 100 meters.
-    private let geofenceRadius: CLLocationDistance = 300
+    // 125m comfortably covers a house or business while keeping nearby
+    // locations (e.g. 7-Eleven and Dwight and Dana, ~274m apart) disjoint.
+    private let geofenceRadius: CLLocationDistance = 125
     
     private override init() {
         super.init()
@@ -191,45 +191,64 @@ final class MotivationGeofenceManager: NSObject, ObservableObject {
             }
         }
         
-        // Don't register duplicates.
-        let currentlyMonitored = Set(
-            locationManager.monitoredRegions.map { $0.identifier }
+        // Index existing monitored regions by identifier so we can replace
+        // any whose geometry no longer matches what we intend to monitor.
+        let existingByID = Dictionary(
+            locationManager.monitoredRegions.map { ($0.identifier, $0) },
+            uniquingKeysWith: { first, _ in first }
         )
-        
+
         for location in locations {
             let center = CLLocationCoordinate2D(
                 latitude: location.latitude,
                 longitude: location.longitude
             )
-            
+
             let region = CLCircularRegion(
                 center: center,
                 radius: geofenceRadius,
                 identifier: location.name
             )
-            
+
             region.notifyOnEntry = true
             region.notifyOnExit = true
-            
-            if currentlyMonitored.contains(location.name) {
+
+            // If a region with this identifier is already monitored but its
+            // radius/center differs from what we now want (e.g. a stale
+            // region left over from a previous run), it must be removed and
+            // re-registered. Otherwise iOS keeps monitoring the old geometry
+            // while requestState below queries our new object — the two
+            // diverge and exit callbacks never match our expectations.
+            if let existing = existingByID[location.name] as? CLCircularRegion {
+                let sameGeometry =
+                    existing.radius == region.radius &&
+                    existing.center.latitude == region.center.latitude &&
+                    existing.center.longitude == region.center.longitude
+
+                if sameGeometry {
+                    NSLog("Already monitoring (matching geometry): %@", location.name)
+                    locationManager.requestState(for: existing)
+                    continue
+                }
+
                 NSLog(
-                    "Already monitoring: %@",
-                    location.name
-                )
-            } else {
-                NSLog(
-                    "Registering geofence: %@ " +
-                    "(lat: %.6f, lon: %.6f, radius: %.0fm)",
+                    "Replacing stale geofence: %@ (old radius %.0fm -> %.0fm)",
                     location.name,
-                    location.latitude,
-                    location.longitude,
-                    geofenceRadius
+                    existing.radius,
+                    region.radius
                 )
-                
-                locationManager.startMonitoring(for: region)
+                locationManager.stopMonitoring(for: existing)
             }
-            
-            // Ask iOS whether we are currently inside or outside.
+
+            NSLog(
+                "Registering geofence: %@ (lat: %.6f, lon: %.6f, radius: %.0fm)",
+                location.name,
+                location.latitude,
+                location.longitude,
+                geofenceRadius
+            )
+
+            locationManager.startMonitoring(for: region)
             locationManager.requestState(for: region)
         }
         
