@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Combine
 import CoreLocation
 
 struct MotivationLocation: Codable {
@@ -14,15 +15,27 @@ struct MotivationLocation: Codable {
     let longitude: Double
 }
 
-final class MotivationGeofenceManager: NSObject {
-    
+struct MotivationActivity: Identifiable {
+    let id = UUID()
+    let name: String
+    let movementType: String
+    let time: Date
+}
+
+final class MotivationGeofenceManager: NSObject, ObservableObject {
+
     static let shared = MotivationGeofenceManager()
-    
+
+    // Published state for the UI.
+    @Published private(set) var launchTime = Date()
+    @Published private(set) var fencedLocations: [MotivationLocation] = []
+    @Published private(set) var recentActivities: [MotivationActivity] = []
+
     private let locationManager = CLLocationManager()
     private let locationsURL = URL(
         string: "https://hero.net/motivation/motivation-locations.json"
     )!
-    
+
     private var monitoredLocations: [MotivationLocation] = []
     
     // Use a larger radius while testing.
@@ -160,7 +173,8 @@ final class MotivationGeofenceManager: NSObject {
     
     private func setupGeofences(_ locations: [MotivationLocation]) {
         monitoredLocations = locations
-        
+        fencedLocations = locations
+
         let newIdentifiers = Set(
             locations.map { $0.name }
         )
@@ -250,6 +264,20 @@ final class MotivationGeofenceManager: NSObject {
             location.name,
             activity
         )
+
+        let record = MotivationActivity(
+            name: location.name,
+            movementType: activity,
+            time: Date()
+        )
+        DispatchQueue.main.async {
+            self.recentActivities.insert(record, at: 0)
+            if self.recentActivities.count > 50 {
+                self.recentActivities.removeLast(
+                    self.recentActivities.count - 50
+                )
+            }
+        }
 
         // The backend validates against a strict JSON schema: it requires
         // exactly these keys and rejects any that are missing or extra.
