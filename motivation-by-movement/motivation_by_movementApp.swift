@@ -14,7 +14,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
         if launchOptions?[.location] != nil {
-            NSLog("📍 App relaunched by iOS for location event")
+            NSLog("App relaunched by iOS for location event")
             _ = MotivationGeofenceManager.shared
         }
         return true

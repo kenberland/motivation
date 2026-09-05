@@ -32,7 +32,7 @@ final class MotivationGeofenceManager: NSObject {
     private override init() {
         super.init()
         
-        NSLog("📍 MotivationGeofenceManager initialized")
+        NSLog("MotivationGeofenceManager initialized")
         
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyHundredMeters
@@ -45,37 +45,37 @@ final class MotivationGeofenceManager: NSObject {
     private func checkAuthorization() {
         let status = locationManager.authorizationStatus
 
-        NSLog("🔐 Authorization status: %@", String(describing: status))
+        NSLog("Authorization status: %@", String(describing: status))
 
         switch status {
         case .notDetermined:
-            NSLog("🔐 Requesting Always authorization")
+            NSLog("Requesting Always authorization")
             locationManager.requestAlwaysAuthorization()
 
         case .authorizedWhenInUse:
-            NSLog("⚠️ Only When In Use authorization")
-            NSLog("⚠️ User must grant Always in Settings")
+            NSLog("Only When In Use authorization")
+            NSLog("User must grant Always in Settings")
 
         case .authorizedAlways:
-            NSLog("✅ Always authorization granted")
+            NSLog("Always authorization granted")
             start()
 
         case .denied:
-            NSLog("❌ Location permission denied")
+            NSLog("Location permission denied")
 
         case .restricted:
-            NSLog("❌ Location permission restricted")
+            NSLog("Location permission restricted")
 
         @unknown default:
-            NSLog("❓ Unknown authorization status")
+            NSLog("Unknown authorization status")
         }
     }
     
     func start() {
-        NSLog("🚀 MotivationGeofenceManager started")
+        NSLog("MotivationGeofenceManager started")
         
         guard locationManager.authorizationStatus == .authorizedAlways else {
-            NSLog("⚠️ Cannot start geofencing: Always authorization is not available")
+            NSLog("Cannot start geofencing: Always authorization is not available")
             return
         }
         
@@ -86,7 +86,7 @@ final class MotivationGeofenceManager: NSObject {
     // MARK: - Fetch Locations
     
     private func fetchLocations() {
-        NSLog("🌐 Fetching motivation locations from server...")
+        NSLog("Fetching motivation locations from server...")
         
         var request = URLRequest(url: locationsURL)
         
@@ -94,35 +94,35 @@ final class MotivationGeofenceManager: NSObject {
         // returning its local cached response.
         request.cachePolicy = .reloadIgnoringLocalCacheData
         
-        NSLog("🌐 Request URL: %@", request.url!.absoluteString)
+        NSLog("Request URL: %@", request.url!.absoluteString)
         
         let task = URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             
             if let error = error {
-                NSLog("❌ Location fetch failed: %@", error.localizedDescription)
+                NSLog("Location fetch failed: %@", error.localizedDescription)
                 return
             }
             
             if let httpResponse = response as? HTTPURLResponse {
-                NSLog("✅ HTTP status: %d", httpResponse.statusCode)
-                NSLog("🌐 Response headers: %@", "\(httpResponse.allHeaderFields)")
+                NSLog("HTTP status: %d", httpResponse.statusCode)
+                NSLog("Response headers: %@", "\(httpResponse.allHeaderFields)")
                 NSLog(
-                    "🌐 Response URL: %@",
+                    "Response URL: %@",
                     httpResponse.url?.absoluteString ?? "nil"
                 )
                 
                 guard (200...299).contains(httpResponse.statusCode) else {
-                    NSLog("❌ Server returned HTTP status %d", httpResponse.statusCode)
+                    NSLog("Server returned HTTP status %d", httpResponse.statusCode)
                     return
                 }
             }
             
             guard let data = data else {
-                NSLog("❌ Server returned no data")
+                NSLog("Server returned no data")
                 return
             }
             
-            NSLog("🌐 Received %d bytes", data.count)
+            NSLog("Received %d bytes", data.count)
             
             do {
                 let locations = try JSONDecoder().decode(
@@ -130,11 +130,11 @@ final class MotivationGeofenceManager: NSObject {
                     from: data
                 )
                 
-                NSLog("✅ Fetched %d motivation locations", locations.count)
+                NSLog("Fetched %d motivation locations", locations.count)
                 
                 for location in locations {
                     NSLog(
-                        "📍 %@: %.6f, %.6f",
+                        "%@: %.6f, %.6f",
                         location.name,
                         location.latitude,
                         location.longitude
@@ -147,7 +147,7 @@ final class MotivationGeofenceManager: NSObject {
                 
             } catch {
                 NSLog(
-                    "❌ Failed to decode motivation locations: %@",
+                    "Failed to decode motivation locations: %@",
                     "\(error)"
                 )
             }
@@ -169,7 +169,7 @@ final class MotivationGeofenceManager: NSObject {
         for region in locationManager.monitoredRegions {
             if !newIdentifiers.contains(region.identifier) {
                 NSLog(
-                    "🗑️ Removing old geofence: %@",
+                    "Removing old geofence: %@",
                     region.identifier
                 )
                 
@@ -199,12 +199,12 @@ final class MotivationGeofenceManager: NSObject {
             
             if currentlyMonitored.contains(location.name) {
                 NSLog(
-                    "ℹ️ Already monitoring: %@",
+                    "Already monitoring: %@",
                     location.name
                 )
             } else {
                 NSLog(
-                    "📍 Registering geofence: %@ " +
+                    "Registering geofence: %@ " +
                     "(lat: %.6f, lon: %.6f, radius: %.0fm)",
                     location.name,
                     location.latitude,
@@ -220,13 +220,13 @@ final class MotivationGeofenceManager: NSObject {
         }
         
         NSLog(
-            "📍 iOS currently reports %d monitored regions",
+            "iOS currently reports %d monitored regions",
             locationManager.monitoredRegions.count
         )
         
         for region in locationManager.monitoredRegions {
             NSLog(
-                "📍 Currently monitored: %@",
+                "Currently monitored: %@",
                 region.identifier
             )
         }
@@ -239,14 +239,14 @@ final class MotivationGeofenceManager: NSObject {
             where: { $0.name == region.identifier }
         ) else {
             NSLog(
-                "⚠️ Received event for unknown region: %@",
+                "Received event for unknown region: %@",
                 region.identifier
             )
             return
         }
 
         NSLog(
-            "🚨 Handling geofence event: %@ (%@)",
+            "Handling geofence event: %@ (%@)",
             location.name,
             activity
         )
@@ -270,7 +270,7 @@ final class MotivationGeofenceManager: NSObject {
                 withJSONObject: event
             )
         else {
-            NSLog("❌ Failed to create event request")
+            NSLog("Failed to create event request")
             return
         }
         
@@ -283,7 +283,7 @@ final class MotivationGeofenceManager: NSObject {
         request.httpBody = jsonData
         
         NSLog(
-            "🌐 Sending event for %@",
+            "Sending event for %@",
             location.name
         )
         
@@ -291,7 +291,7 @@ final class MotivationGeofenceManager: NSObject {
             
             if let error = error {
                 NSLog(
-                    "❌ Event POST failed: %@",
+                    "Event POST failed: %@",
                     error.localizedDescription
                 )
                 return
@@ -299,13 +299,13 @@ final class MotivationGeofenceManager: NSObject {
             
             if let httpResponse = response as? HTTPURLResponse {
                 NSLog(
-                    "✅ Event POST HTTP status: %d",
+                    "Event POST HTTP status: %d",
                     httpResponse.statusCode
                 )
             }
             
             NSLog(
-                "✅ Event POST completed for %@",
+                "Event POST completed for %@",
                 location.name
             )
         }
@@ -323,7 +323,7 @@ extension MotivationGeofenceManager: CLLocationManagerDelegate {
         didChangeAuthorization status: CLAuthorizationStatus
     ) {
         NSLog(
-            "🔐 Authorization changed: %@",
+            "Authorization changed: %@",
             String(describing: status)
         )
         
@@ -337,7 +337,7 @@ extension MotivationGeofenceManager: CLLocationManagerDelegate {
         didStartMonitoringFor region: CLRegion
     ) {
         NSLog(
-            "✅ iOS accepted monitoring for: %@",
+            "iOS accepted monitoring for: %@",
             region.identifier
         )
         
@@ -350,7 +350,7 @@ extension MotivationGeofenceManager: CLLocationManagerDelegate {
         for region: CLRegion
     ) {
         NSLog(
-            "🔎 Region state — %@: %@",
+            "Region state — %@: %@",
             region.identifier,
             String(describing: state)
         )
@@ -361,7 +361,7 @@ extension MotivationGeofenceManager: CLLocationManagerDelegate {
         didEnterRegion region: CLRegion
     ) {
         NSLog(
-            "🚨🚨🚨 ENTERED REGION: %@",
+            "ENTERED REGION: %@",
             region.identifier
         )
         
@@ -373,7 +373,7 @@ extension MotivationGeofenceManager: CLLocationManagerDelegate {
         didExitRegion region: CLRegion
     ) {
         NSLog(
-            "🚨🚨🚨 EXITED REGION: %@",
+            "EXITED REGION: %@",
             region.identifier
         )
 
@@ -386,7 +386,7 @@ extension MotivationGeofenceManager: CLLocationManagerDelegate {
         withError error: Error
     ) {
         NSLog(
-            "❌ Region monitoring failed — %@: %@",
+            "Region monitoring failed — %@: %@",
             region?.identifier ?? "unknown",
             error.localizedDescription
         )
@@ -397,7 +397,7 @@ extension MotivationGeofenceManager: CLLocationManagerDelegate {
         didFailWithError error: Error
     ) {
         NSLog(
-            "❌ CLLocationManager failed: %@",
+            "CLLocationManager failed: %@",
             error.localizedDescription
         )
     }
@@ -408,7 +408,7 @@ extension MotivationGeofenceManager: CLLocationManagerDelegate {
     ) {
         if let error = error {
             NSLog(
-                "⚠️ Deferred location updates failed: %@",
+                "Deferred location updates failed: %@",
                 error.localizedDescription
             )
         }
